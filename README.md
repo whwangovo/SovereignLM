@@ -1,4 +1,4 @@
-# 🕵️‍♂️ Local NotebookLM
+# 🕵️‍♂️ SovereignLM
 
 Privacy-first deep-research agent that runs entirely on your machine. It pairs a FastAPI backend (ChromaDB + local LLM via Parallax or compatible API) with a Vite/React/Tailwind frontend that streams reasoning steps, citations, and status updates.
 

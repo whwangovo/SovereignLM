@@ -3,5 +3,7 @@ tests
 chroma_db
 archive
 documents/**
+checkpoints
 
 .env
+p2p.key

@@ -1,0 +1,7 @@
+**__pycache__**
+tests
+chroma_db
+archive
+documents/**
+
+.env

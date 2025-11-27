@@ -1,45 +1,65 @@
-# 🕵️‍♂️ Sherlock Local
+# 🕵️‍♂️ Sherlock Local (Local NotebookLM)
 
-**Distributed Intelligence on Local Hardware**
+Privacy-first deep-research agent that runs entirely on your machine. It pairs a FastAPI backend (ChromaDB + local LLM via Parallax or compatible API) with a Vite/React/Tailwind frontend that streams reasoning steps, citations, and status updates.
 
-Sherlock Local is a "Deep Research" agent that runs entirely on your local network. It connects to a local LLM (via Parallax or similar) to perform multi-step reasoning, document analysis, and report generation without your data ever leaving your machine.
+## ✨ What you get
+- Streaming ReAct-style investigation with status logs, thoughts, and evidence snippets.
+- Local vector index (ChromaDB) built from your PDFs/text/CSV files.
+- Document upload with optional auto-reindexing.
+- Frontend sidebar to view documents, trigger reindex, and upload.
 
-## 🚀 Motivation
-Privacy is paramount for deep research. Existing cloud-based solutions require uploading sensitive documents. Sherlock Local solves this by bringing the intelligence to your data, not the other way around.
+## 🧱 Architecture
+- Backend: FastAPI + ChromaDB + local LLM client (OpenAI-compatible endpoint).
+- Agent loop: regulated ReAct prompt with search tool backed by Chroma embeddings.
+- Frontend: Vite + React + Tailwind CSS + Framer Motion, consuming SSE from `/api/investigate`.
 
-## 🏗️ Architecture
-- **Frontend**: Next.js 14 + Tailwind CSS (Apple-style Design)
-- **Backend**: FastAPI (Python)
-- **Agent**: ReAct Loop with ChromaDB & Local LLM
+## 📦 Requirements
+- Python 3.10+
+- Node.js 18+
+- Local LLM endpoint that speaks the OpenAI chat protocol (e.g., Parallax, vLLM, Ollama with OpenAI bridge).
 
-## 🛠️ Setup
+## ⚙️ Configure environment
+1) Copy the example env and edit values:
+```bash
+cp .env.example .env
+# LLM_BASE_URL=http://localhost:8888/v1
+# LLM_API_KEY=your_key
+# MODEL_NAME=Qwen/Qwen2.5-32B-Instruct-GGUF
+```
 
-1.  **Backend Setup**:
-    ```bash
-    # Install dependencies
-    pip install -r requirements.txt
-    
-    # Configure API
-    cp .env.example .env
-    # Edit .env with your LLM settings
-    
-    # Run Backend
-    uvicorn backend.main:app --reload --port 8000
-    ```
+## 🚀 Run backend
+```bash
+pip install -r requirements.txt
+uvicorn backend.main:app --reload --port 8000
+```
 
-2.  **Frontend Setup**:
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000).
+Key directories:
+- `./documents`: source docs to index (PDF, TXT/MD, CSV).
+- `./my_documents`: uploaded PDFs saved here by `/api/upload`.
 
-3.  **Indexing Documents**:
-    Place your files in `project_obsidian_data` and trigger indexing via the API or script:
-    ```bash
-    curl -X POST http://localhost:8000/api/index
-    ```
+Indexing options:
+- Manual: `python -m backend.indexer`
+- API: `curl -X POST http://localhost:8000/api/index`
+
+## 🖥️ Run frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open http://localhost:3000 and start chatting.
+
+## 🔌 API quick reference
+- `GET /api/documents` — list indexed PDFs.
+- `POST /api/index` — rebuild index (optional JSON body `{ "path": "./some_folder" }`).
+- `POST /api/upload` — multipart upload (`file`) with optional `reindex` flag.
+- `POST /api/investigate` — streaming SSE investigation; body `{ query, history }`.
+- `GET /health` — simple health check.
+
+## 🗂️ Workflow
+1) Drop PDFs/TXT/CSV into `documents/` or upload via UI.
+2) Click “Re-Index” in the sidebar (or call `/api/index`).
+3) Ask questions in the chat; answers include citations to your local docs.
 
 ## 🔒 Privacy
-**Documents never leave your network.** All indexing and retrieval happens locally using ChromaDB. All inference happens on your local LLM.
+All documents, embeddings, and model calls stay within your local network. The app never ships your data to a hosted service.

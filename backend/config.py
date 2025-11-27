@@ -9,6 +9,9 @@ load_dotenv()
 PARALLAX_API_BASE = os.getenv("LLM_BASE_URL", "http://localhost:8888/v1")
 PARALLAX_API_KEY = os.getenv("LLM_API_KEY", "parallax")
 
+# Provider: OPENAI | PARALLAX
+LLM_MODE = os.getenv("LLM_MODE", "OPENAI").upper()
+
 # Model Configuration
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-32B-Instruct-GGUF")
 

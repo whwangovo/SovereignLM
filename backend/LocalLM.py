@@ -2,17 +2,16 @@ import json
 import re  # 引入正则，解析更稳
 
 import chromadb
+import httpx
 from chromadb.utils import embedding_functions
 from openai import OpenAI
 
 # 确保 backend 文件夹下有 config.py
-from .config import DB_PATH, MODEL_NAME, PARALLAX_API_BASE, PARALLAX_API_KEY
+from .config import DB_PATH, LLM_MODE, MODEL_NAME, PARALLAX_API_BASE, PARALLAX_API_KEY
 
 # ==========================================
 # 1. 初始化 (Initialization)
 # ==========================================
-
-client = OpenAI(base_url=PARALLAX_API_BASE, api_key=PARALLAX_API_KEY)
 
 # 显式指定 Embedding 模型，防止 ChromaDB 默认下载出错
 # 注意：这必须与你 indexer.py 里使用的模型一致
@@ -104,7 +103,84 @@ def search_tool(query):
         return [f"搜索出错: {str(e)}"], [{"source": "System", "page": 0}]
 
 # ==========================================
-# 4. 核心推理循环 (Main Loop)
+# 4. LLM 调用 (LLM Callers)
+# ==========================================
+
+_openai_client = None
+
+
+def _call_openai(messages):
+    global _openai_client
+    if _openai_client is None:
+        _openai_client = OpenAI(base_url=PARALLAX_API_BASE, api_key=PARALLAX_API_KEY)
+
+    response = _openai_client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        temperature=0.1,
+        stop=["Observation:", "Observation"],  # 双重保险，防止模型自己生成 Observation
+    )
+    return response.choices[0].message.content
+
+
+def _call_parallax(messages):
+    """
+    使用 httpx 调用 Parallax/OpenAI 兼容接口（流式），聚合成完整内容。
+    """
+    url = PARALLAX_API_BASE.rstrip("/") + "/chat/completions"
+    headers = {"Content-Type": "application/json"}
+    if PARALLAX_API_KEY:
+        headers["Authorization"] = f"Bearer {PARALLAX_API_KEY}"
+
+    payload = {
+        "model": MODEL_NAME,
+        "messages": messages,
+        "temperature": 0.1,
+        "max_tokens": 1024,
+        "stream": True,
+        "stop": ["Observation:", "Observation"],
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+
+    full_content = ""
+    try:
+        with httpx.Client(timeout=httpx.Timeout(60.0, read=60.0)) as http_client:
+            with http_client.stream("POST", url, headers=headers, json=payload) as resp:
+                resp.raise_for_status()
+                for raw_line in resp.iter_lines():
+                    if not raw_line:
+                        continue
+                    line = raw_line.decode("utf-8").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        event = json.loads(data)
+                        delta = event["choices"][0].get("delta", {})
+                        full_content += delta.get("content", "") or ""
+                    except Exception:
+                        # 跳过无法解析的片段，继续聚合
+                        continue
+    except Exception as e:
+        raise RuntimeError(f"Parallax 调用失败: {e}")
+
+    return full_content.strip()
+
+
+def call_llm(messages):
+    """
+    根据 LLM_MODE 切换调用方式。OPENAI 保持原逻辑，PARALLAX 使用 httpx 请求。
+    """
+    mode = (LLM_MODE or "OPENAI").upper()
+    if mode == "PARALLAX":
+        return _call_parallax(messages)
+    return _call_openai(messages)
+
+
+# ==========================================
+# 5. 核心推理循环 (Main Loop)
 # ==========================================
 
 def run_investigation(user_query, history=None):
@@ -134,16 +210,9 @@ def run_investigation(user_query, history=None):
                 yield {"type": "status", "content": "⏰ 达到调用上限，要求模型给出最终回答。"}
 
             # 1. 调用 LLM
-            # 注意：temperature=0 对于 ReAct 至关重要，保证逻辑稳定
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=messages,
-                temperature=0.1, 
-                stop=["Observation:", "Observation"] # 双重保险，防止模型自己生成 Observation
-            )
+            # 注意：temperature=0.1 对于 ReAct 至关重要，保证逻辑稳定
+            content = call_llm(messages)
             call_count += 1
-            
-            content = response.choices[0].message.content
             
             # 将思考过程实时吐给 UI
             yield {"type": "thought", "content": content}

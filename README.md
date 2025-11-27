@@ -30,6 +30,7 @@ cp .env.example .env
 # LLM_BASE_URL=http://localhost:8888/v1
 # LLM_API_KEY=your_key
 # MODEL_NAME=Qwen/Qwen2.5-32B-Instruct-GGUF
+# LLM_MODE=OPENAI   # or PARALLAX to route via httpx to /v1/chat/completions
 ```
 
 ## 🚀 Run backend

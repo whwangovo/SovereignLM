@@ -127,7 +127,12 @@ def _call_parallax(messages):
     """
     使用 httpx 调用 Parallax/OpenAI 兼容接口（流式），聚合成完整内容。
     """
-    url = PARALLAX_API_BASE.rstrip("/") + "/chat/completions"
+    base = PARALLAX_API_BASE.rstrip("/")
+    # 允许用户直接提供完整的 /chat/completions URL，避免重复拼接
+    if base.endswith("/chat/completions"):
+        url = base
+    else:
+        url = base + "/chat/completions"
     headers = {"Content-Type": "application/json"}
     if PARALLAX_API_KEY:
         headers["Authorization"] = f"Bearer {PARALLAX_API_KEY}"
@@ -150,7 +155,7 @@ def _call_parallax(messages):
                 for raw_line in resp.iter_lines():
                     if not raw_line:
                         continue
-                    line = raw_line.decode("utf-8").strip()
+                    line = raw_line.decode("utf-8").strip() if isinstance(raw_line, (bytes, bytearray)) else str(raw_line).strip()
                     if not line.startswith("data:"):
                         continue
                     data = line[5:].strip()

@@ -27,18 +27,61 @@ Privacy-first deep-research agent that runs entirely on your machine. It pairs a
 
 ```bash
 cp .env.example .env
-# LLM_BASE_URL=http://localhost:8888/v1
+# LLM_BASE_URL=http://localhost:3000/v1
 # LLM_API_KEY=your_key
-# MODEL_NAME=Qwen/Qwen2.5-32B-Instruct-GGUF
-# LLM_MODE=OPENAI   # or PARALLAX to route via httpx to /v1/chat/completions
+# MODEL_NAME=Qwen/Qwen3-32B
+# LLM_MODE=PARALLAX  # or OPENAI
 ```
 
 ## 🚀 Run backend
 
 ```bash
 pip install -r requirements.txt
+```
+
+### Parallax backend
+
+First, install parallax:
+
+```
+git clone https://github.com/GradientHQ/parallax.git
+cd parallax
+pip install -e '.[gpu]' # or pip install -e '.[mac]'
+```
+
+If it's a distributed deployment, start the service on different machines(eg. mac and wsl) on different local area networks:
+
+```
+# for Mac
+python3 ./src/parallax/launch.py \
+  --model-path path/to/Qwen/Qwen3-32B-MLX-4bit \
+  --port 3000 \
+  --max-batch-size 1 \
+  --start-layer 0 \
+  --end-layer 32 \
+  --host 0.0.0.0
+
+# for Linux or WSL
+python3 ./src/parallax/launch.py \
+  --model-path path/to/Qwen/Qwen3-32B-AWQ \
+  --port 3000 \
+  --max-batch-size 1 \
+  --start-layer 32 \
+  --end-layer 64 \
+  --dtype float16 \
+  --host 0.0.0.0
+```
+
+Finally, start the backend service:
+
+```
 uvicorn backend.main:app --reload --port 8000
 ```
+
+### Openai backend
+
+Simply fill in the base URL and API key in the env field.
+
 
 Key directories:
 

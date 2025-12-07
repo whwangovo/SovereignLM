@@ -279,14 +279,14 @@ function App() {
           <header className="flex items-start justify-between shrink-0">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Parallax Scholar</p>
-              <h1 className="text-3xl font-semibold text-gray-900">Local NotebookLM</h1>
+              <h1 className="text-3xl font-semibold text-gray-900">SovereignLM</h1>
               <p className="text-sm text-gray-600">
                 Privacy-first research assistant running on your heterogeneous hardware.
               </p>
             </div>
             <div className="flex items-center gap-2 bg-gradient-to-r from-primary/15 to-primary/5 text-primary px-4 py-2 rounded-xl shadow-lg shadow-blue-500/10 border border-primary/20">
               <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-semibold">⚡ Powered by Parallax</span>
+              <span className="text-sm font-semibold">⚡ Powered by Parallax, Mac M1 (16G) + WSL 4060Ti (8G)</span>
             </div>
           </header>
 
@@ -295,7 +295,7 @@ function App() {
               <div className="flex-1 space-y-6 overflow-y-auto pr-1">
                 {messages.length === 0 ? (
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-gray-600 text-sm">
-                    开始对话，Local NotebookLM 会结合你的 PDF 文档生成带引用的中文回答。
+                    开始对话，SovereignLM 会结合你的 PDF 文档生成带引用的中文回答。
                   </div>
                 ) : (
                   <AnimatePresence>
